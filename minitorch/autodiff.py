@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Iterable, List, Tuple
+from typing import Any, Iterable, List, Tuple, Dict
 
 from typing_extensions import Protocol
 
@@ -64,8 +64,16 @@ def topological_sort(variable: Variable) -> Iterable[Variable]:
     Returns:
         Non-constant Variables in topological order starting from the right.
     """
-    # TODO: Implement for Task 1.4.
-    raise NotImplementedError('Need to implement for Task 1.4')
+    topo_order: List[Variable] = []
+
+    def insert_variable(v: Variable, topo_order: List[Variable]):
+        topo_order_ids = [v.unique_id for v in topo_order]
+        for p in v.parents:
+            if p.unique_id not in topo_order_ids:
+                insert_variable(p, topo_order)
+        topo_order.append(v)
+    insert_variable(variable, topo_order)
+    return topo_order
 
 
 def backpropagate(variable: Variable, deriv: Any) -> None:
@@ -79,8 +87,15 @@ def backpropagate(variable: Variable, deriv: Any) -> None:
 
     No return. Should write to its results to the derivative values of each leaf through `accumulate_derivative`.
     """
-    # TODO: Implement for Task 1.4.
-    raise NotImplementedError('Need to implement for Task 1.4')
+    node_to_deriv: Dict[int, Any] = {variable.unique_id: [deriv]}
+    for v in reversed(topological_sort(variable)):
+        if v.is_leaf():
+            continue
+        v_bar = sum(node_to_deriv[v.unique_id])
+        for p, d in v.chain_rule(v_bar):
+            node_to_deriv[p.unique_id] = node_to_deriv.get(p.unique_id, []) + [d]
+            if p.is_leaf():
+                p.accumulate_derivative(d)
 
 
 @dataclass
